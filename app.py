@@ -100,52 +100,24 @@ def predict():
 
             # Process MobileNetV2 predictions
             if isinstance(mobilenet_preds, list):
-                mobilenet_cloud_preds = mobilenet_preds[0]
-                if not np.allclose(np.sum(mobilenet_cloud_preds[0]), 1.0, atol=1e-5):
-                    mobilenet_cloud_preds = tf.nn.softmax(mobilenet_preds[0]).numpy()
+                mobilenet_cloud_preds = tf.nn.softmax(mobilenet_preds[0]).numpy()
             else:
-                mobilenet_cloud_preds = mobilenet_preds
-                if not np.allclose(np.sum(mobilenet_cloud_preds[0]), 1.0, atol=1e-5):
-                    mobilenet_cloud_preds = tf.nn.softmax(mobilenet_preds).numpy()
-            mobilenet_max_confidence = np.max(mobilenet_cloud_preds[0])
+                mobilenet_cloud_preds = tf.nn.softmax(mobilenet_preds).numpy()
             mobilenet_class_idx = np.argmax(mobilenet_cloud_preds[0])
             mobilenet_class = class_names[mobilenet_class_idx]
             mobilenet_rainfall = rainfall_to_category(rainfall_mapping.get(mobilenet_class, "Unknown"))
 
             # Process Xception predictions
             if isinstance(xception_preds, list):
-                xception_cloud_preds = xception_preds[0]
-                if not np.allclose(np.sum(xception_cloud_preds[0]), 1.0, atol=1e-5):
-                    xception_cloud_preds = tf.nn.softmax(xception_preds[0]).numpy()
+                xception_cloud_preds = tf.nn.softmax(xception_preds[0]).numpy()
             else:
-                xception_cloud_preds = xception_preds
-                if not np.allclose(np.sum(xception_cloud_preds[0]), 1.0, atol=1e-5):
-                    xception_cloud_preds = tf.nn.softmax(xception_preds).numpy()
-            xception_max_confidence = np.max(xception_cloud_preds[0])
+                xception_cloud_preds = tf.nn.softmax(xception_preds).numpy()
             xception_class_idx = np.argmax(xception_cloud_preds[0])
             xception_class = class_names[xception_class_idx]
             xception_rainfall = rainfall_to_category(rainfall_mapping.get(xception_class, "Unknown"))
 
-            # Log predictions for debugging
-            logger.info(f"MobileNetV2 max confidence: {mobilenet_max_confidence}, class: {mobilenet_class}")
-            logger.info(f"Xception max confidence: {xception_max_confidence}, class: {xception_class}")
-
-            # Validation logic: both models must agree on the same class with high confidence
-            CONFIDENCE_THRESHOLD = 0.8  # Stricter threshold
-            if (mobilenet_class != xception_class) or (mobilenet_max_confidence < CONFIDENCE_THRESHOLD) or (xception_max_confidence < CONFIDENCE_THRESHOLD):
-                with open(filepath, "rb") as image_file:
-                    encoded_image = base64.b64encode(image_file.read()).decode('utf-8')
-                logger.info("Image classified as non-cloud: models disagree or low confidence")
-                return jsonify({
-                    "error": "This doesn't appear to be a cloud image. Please upload an image of clouds.",
-                    "image_base64": encoded_image
-                })
-
             with open(filepath, "rb") as image_file:
                 encoded_image = base64.b64encode(image_file.read()).decode('utf-8')
-
-            logger.info(f"MobileNetV2 prediction: {mobilenet_class}, Rainfall: {mobilenet_rainfall}")
-            logger.info(f"Xception prediction: {xception_class}, Rainfall: {xception_rainfall}")
 
             return jsonify({
                 "mobilenetv2": {"class": mobilenet_class, "rainfall": mobilenet_rainfall},
